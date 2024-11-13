@@ -1278,17 +1278,20 @@ def option_one():
     team_weaknesses = []
     team_resistances = []
     team_immunities = []
+    team_offensive_strengths = []
+
     for entry in pokemon_entries:
         name = entry['name']
         types = entry['types']
-        # print(f"\n{name}'s types are: {types}")
+        print(f"\n{name}'s types are: {types}")
         for t in types:
             if t not in team_types:
                 team_types.append(t)
-            # Collect weaknesses, resistances, immunities per type, maintaining order
+            # Collect weaknesses, resistances, immunities, and offensive strengths per type, maintaining order
             weaknesses = type_weaknesses.get(t, [])
             resistances = type_resistances.get(t, [])
             immunities = type_immunities.get(t, [])
+            strengths = type_strengths.get(t, [])
             # Add to team lists while preserving order and avoiding duplicates
             for w in weaknesses:
                 if w not in team_weaknesses:
@@ -1299,20 +1302,26 @@ def option_one():
             for i in immunities:
                 if i not in team_immunities:
                     team_immunities.append(i)
+            for s in strengths:
+                if s not in team_offensive_strengths:
+                    team_offensive_strengths.append(s)
 
     # Adjust weaknesses based on resistances and immunities
-    covered_types = set(team_resistances).union(set(team_immunities))
-    adjusted_weaknesses = [w for w in team_weaknesses if w not in covered_types]
+    covered_types_defensively = set(team_resistances).union(set(team_immunities))
+    adjusted_weaknesses_defensive = [w for w in team_weaknesses if w not in covered_types_defensively]
+
+    # Adjust weaknesses based on offensive strengths
+    adjusted_weaknesses = [w for w in adjusted_weaknesses_defensive if w not in team_offensive_strengths]
 
     print(f"\nYour team's types are: {team_types}")
-    # print(f"\nGross Weaknesses: {weaknesses}")
-    # print(f"\nResistances: {resistances}")
-    # print(f"\nImmunities: {immunities}")
-    print(f"\nWeaknesses: {adjusted_weaknesses}") # (after considering resistances and immunities)
+    print(f"Weaknesses (before offensive coverage): {adjusted_weaknesses_defensive}")
+    print(f"Offensive strengths: {team_offensive_strengths}")
+    print(f"Weaknesses (after considering offensive coverage): {adjusted_weaknesses}")
 
+    # Decide whether to print recommended types
     if len(pokemon_entries) < 3:
         recommended_types = recommend_types(set(adjusted_weaknesses))
-        print(f"Recommended types to cover weaknesses (without conflicting weaknesses): {recommended_types}")
+        print(f"\nRecommended types to cover remaining weaknesses (without conflicting weaknesses): {recommended_types}")
 
 def option_two():
     valid_types = list(type_weaknesses.keys())
