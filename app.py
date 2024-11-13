@@ -1168,57 +1168,35 @@ pokemon_typings = {
 
 
 def get_pokemon_types(pokemon_name):
-    return pokemon_typings.get(pokemon_name.capitalize(), None)
-
-def get_weaknesses(types):
-    weaknesses = []
-    for t in types:
-        weaknesses.extend(type_weaknesses.get(t, []))
-    return set(weaknesses)
-
-def get_resistances(types):
-    resistances = []
-    for t in types:
-        resistances.extend(type_resistances.get(t, []))
-    return set(resistances)
-
-def get_immunities(types):
-    immunities = []
-    for t in types:
-        immunities.extend(type_immunities.get(t, []))
-    return set(immunities)
-
-def get_type_weaknesses(type_name):
-    return type_weaknesses.get(type_name, [])
-
-def recommend_types(adjusted_weaknesses):
-    recommended = set()
-    for weakness in adjusted_weaknesses:
-        strong_types = [t for t, strengths in type_strengths.items() if weakness in strengths]
-        for t in strong_types:
-            # Check if the recommended type is not weak to any of the adjusted weaknesses
-            t_weaknesses = set(get_type_weaknesses(t))
-            if not t_weaknesses.intersection(adjusted_weaknesses):
-                recommended.add(t)
-    return recommended
+    # Sanitize input by stripping whitespace and capitalizing each word
+    name = pokemon_name.strip().title()
+    return pokemon_typings.get(name, None)
 
 def option_one():
     pokemon_names = []
     for i in range(1, 4):
-        name = input(f"Enter the name of Pokémon {i} (or press Enter to skip): ").strip()
-        if name:
-            pokemon_names.append(name)
+        while True:
+            name = input(f"Enter the name of Pokémon {i} (or press Enter to skip): ").strip()
+            if not name:
+                break  # User chose to skip
+            types = get_pokemon_types(name)
+            if types:
+                pokemon_names.append(name.strip().title())
+                break  # Valid Pokémon found, proceed to next
+            else:
+                print(f"Pokémon '{name}' not found in the database. Please try again.")
         else:
-            break
+            continue
+        break  # Exit if the user skips input
+
+    if not pokemon_names:
+        print("No Pokémon entered. Exiting option.")
+        return
 
     team_types = []
     for name in pokemon_names:
         types = get_pokemon_types(name)
-        if types:
-            team_types.extend(types)
-        else:
-            print(f"Pokémon '{name}' not found in the database.")
-            return
+        team_types.extend(types)
 
     team_types = set(team_types)
     weaknesses = get_weaknesses(team_types)
@@ -1239,15 +1217,23 @@ def option_one():
     print(f"Recommended types to cover weaknesses (without conflicting weaknesses): {recommended_types}")
 
 def option_two():
-    type_input = input("Enter your team's types (comma-separated): ").strip()
-    types = [t.strip().capitalize() for t in type_input.split(',') if t.strip()]
-    types = set(types)  # Remove duplicates
     valid_types = set(type_weaknesses.keys())
+    while True:
+        type_input = input("Enter your team's types (comma-separated): ").strip()
+        if not type_input:
+            print("No types entered. Please enter at least one type.")
+            continue
+        types = [t.strip().capitalize() for t in type_input.split(',') if t.strip()]
+        types = set(types)  # Remove duplicates
 
-    invalid_types = types - valid_types
-    if invalid_types:
-        print(f"Invalid types entered: {invalid_types}")
-        return
+        invalid_types = types - valid_types
+        if invalid_types:
+            print(f"Invalid types entered: {invalid_types}")
+            print(f"Valid types are: {valid_types}")
+            print("Please re-enter your team's types.")
+            continue
+        else:
+            break  # All types are valid
 
     weaknesses = get_weaknesses(types)
     resistances = get_resistances(types)
@@ -1270,14 +1256,16 @@ def main():
     print("Choose an option:")
     print("1. Enter up to three Pokémon names.")
     print("2. Enter a comma-separated list of your team's types.")
-    choice = input("Enter 1 or 2: ").strip()
-
-    if choice == '1':
-        option_one()
-    elif choice == '2':
-        option_two()
-    else:
-        print("Invalid choice. Please run the program again and select 1 or 2.")
+    while True:
+        choice = input("Enter 1 or 2: ").strip()
+        if choice == '1':
+            option_one()
+            break
+        elif choice == '2':
+            option_two()
+            break
+        else:
+            print("Invalid choice. Please enter '1' or '2'.")
 
 if __name__ == "__main__":
     main()
