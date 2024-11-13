@@ -19,46 +19,90 @@
 
 # Define type weaknesses
 type_weaknesses = {
-    "Normal": ["Fighting"],
-    "Fire": ["Water", "Ground", "Rock"],
-    "Water": ["Electric", "Grass"],
-    "Electric": ["Ground"],
-    "Grass": ["Fire", "Ice", "Poison", "Flying", "Bug"],
-    "Ice": ["Fire", "Fighting", "Rock", "Steel"],
-    "Fighting": ["Flying", "Psychic", "Fairy"],
-    "Poison": ["Ground", "Psychic"],
-    "Ground": ["Water", "Grass", "Ice"],
-    "Flying": ["Electric", "Ice", "Rock"],
-    "Psychic": ["Bug", "Ghost", "Dark"],
-    "Bug": ["Fire", "Flying", "Rock"],
-    "Rock": ["Water", "Grass", "Fighting", "Ground", "Steel"],
-    "Ghost": ["Ghost", "Dark"],
-    "Dragon": ["Ice", "Dragon", "Fairy"],
-    "Dark": ["Fighting", "Bug", "Fairy"],
-    "Steel": ["Fire", "Fighting", "Ground"],
-    "Fairy": ["Poison", "Steel"],
+    'Normal': ['Fighting'],
+    'Fire': ['Water', 'Ground', 'Rock'],
+    'Water': ['Electric', 'Grass'],
+    'Electric': ['Ground'],
+    'Grass': ['Fire', 'Ice', 'Poison', 'Flying', 'Bug'],
+    'Ice': ['Fire', 'Fighting', 'Rock', 'Steel'],
+    'Fighting': ['Flying', 'Psychic', 'Fairy'],
+    'Poison': ['Ground', 'Psychic'],
+    'Ground': ['Water', 'Grass', 'Ice'],
+    'Flying': ['Electric', 'Ice', 'Rock'],
+    'Psychic': ['Bug', 'Ghost', 'Dark'],
+    'Bug': ['Fire', 'Flying', 'Rock'],
+    'Rock': ['Water', 'Grass', 'Fighting', 'Ground', 'Steel'],
+    'Ghost': ['Ghost', 'Dark'],
+    'Dragon': ['Ice', 'Dragon', 'Fairy'],
+    'Dark': ['Fighting', 'Bug', 'Fairy'],
+    'Steel': ['Fire', 'Fighting', 'Ground'],
+    'Fairy': ['Poison', 'Steel'],
+}
+
+# Define type resistances
+type_resistances = {
+    'Normal': [],
+    'Fire': ['Fire', 'Grass', 'Ice', 'Bug', 'Steel', 'Fairy'],
+    'Water': ['Fire', 'Water', 'Ice', 'Steel'],
+    'Electric': ['Electric', 'Flying', 'Steel'],
+    'Grass': ['Water', 'Electric', 'Grass', 'Ground'],
+    'Ice': ['Ice'],
+    'Fighting': ['Bug', 'Rock', 'Dark'],
+    'Poison': ['Grass', 'Fighting', 'Poison', 'Bug', 'Fairy'],
+    'Ground': ['Poison', 'Rock'],
+    'Flying': ['Grass', 'Fighting', 'Bug'],
+    'Psychic': ['Fighting', 'Psychic'],
+    'Bug': ['Grass', 'Fighting', 'Ground'],
+    'Rock': ['Normal', 'Fire', 'Poison', 'Flying'],
+    'Ghost': ['Poison', 'Bug'],
+    'Dragon': ['Fire', 'Water', 'Electric', 'Grass'],
+    'Dark': ['Ghost', 'Dark'],
+    'Steel': ['Normal', 'Grass', 'Ice', 'Flying', 'Psychic', 'Bug', 'Rock', 'Dragon', 'Steel', 'Fairy'],
+    'Fairy': ['Fighting', 'Bug', 'Dark'],
+}
+
+# Define type immunities
+type_immunities = {
+    'Normal': ['Ghost'],
+    'Fire': [],
+    'Water': [],
+    'Electric': [],
+    'Grass': [],
+    'Ice': [],
+    'Fighting': [],
+    'Poison': [],
+    'Ground': ['Electric'],
+    'Flying': ['Ground'],
+    'Psychic': [],
+    'Bug': [],
+    'Rock': [],
+    'Ghost': ['Normal', 'Fighting'],
+    'Dragon': [],
+    'Dark': ['Psychic'],
+    'Steel': ['Poison'],
+    'Fairy': ['Dragon'],
 }
 
 # Define type strengths (types that are super-effective against others)
 type_strengths = {
-    "Normal": [],
-    "Fire": ["Grass", "Ice", "Bug", "Steel"],
-    "Water": ["Fire", "Ground", "Rock"],
-    "Electric": ["Water", "Flying"],
-    "Grass": ["Water", "Ground", "Rock"],
-    "Ice": ["Grass", "Ground", "Flying", "Dragon"],
-    "Fighting": ["Normal", "Ice", "Rock", "Dark", "Steel"],
-    "Poison": ["Grass", "Fairy"],
-    "Ground": ["Fire", "Electric", "Poison", "Rock", "Steel"],
-    "Flying": ["Grass", "Fighting", "Bug"],
-    "Psychic": ["Fighting", "Poison"],
-    "Bug": ["Grass", "Psychic", "Dark"],
-    "Rock": ["Fire", "Ice", "Flying", "Bug"],
-    "Ghost": ["Psychic", "Ghost"],
-    "Dragon": ["Dragon"],
-    "Dark": ["Psychic", "Ghost"],
-    "Steel": ["Ice", "Rock", "Fairy"],
-    "Fairy": ["Fighting", "Dragon", "Dark"],
+    'Normal': [],
+    'Fire': ['Grass', 'Ice', 'Bug', 'Steel'],
+    'Water': ['Fire', 'Ground', 'Rock'],
+    'Electric': ['Water', 'Flying'],
+    'Grass': ['Water', 'Ground', 'Rock'],
+    'Ice': ['Grass', 'Ground', 'Flying', 'Dragon'],
+    'Fighting': ['Normal', 'Ice', 'Rock', 'Dark', 'Steel'],
+    'Poison': ['Grass', 'Fairy'],
+    'Ground': ['Fire', 'Electric', 'Poison', 'Rock', 'Steel'],
+    'Flying': ['Grass', 'Fighting', 'Bug'],
+    'Psychic': ['Fighting', 'Poison'],
+    'Bug': ['Grass', 'Psychic', 'Dark'],
+    'Rock': ['Fire', 'Ice', 'Flying', 'Bug'],
+    'Ghost': ['Psychic', 'Ghost'],
+    'Dragon': ['Dragon'],
+    'Dark': ['Psychic', 'Ghost'],
+    'Steel': ['Ice', 'Rock', 'Fairy'],
+    'Fairy': ['Fighting', 'Dragon', 'Dark'],
 }
 
 # Define Pokémon typings
@@ -1172,22 +1216,59 @@ def get_pokemon_types(pokemon_name):
     name = pokemon_name.strip().title()
     return pokemon_typings.get(name, None)
 
+def get_weaknesses(types):
+    weaknesses = []
+    for t in types:
+        weaknesses.extend(type_weaknesses.get(t, []))
+    return set(weaknesses)
+
+def get_resistances(types):
+    resistances = []
+    for t in types:
+        resistances.extend(type_resistances.get(t, []))
+    return set(resistances)
+
+def get_immunities(types):
+    immunities = []
+    for t in types:
+        immunities.extend(type_immunities.get(t, []))
+    return set(immunities)
+
+def get_type_weaknesses(type_name):
+    return type_weaknesses.get(type_name, [])
+
+def recommend_types(adjusted_weaknesses):
+    recommended = set()
+    for weakness in adjusted_weaknesses:
+        strong_types = [t for t, strengths in type_strengths.items() if weakness in strengths]
+        for t in strong_types:
+            # Check if the recommended type is not weak to any of the adjusted weaknesses
+            t_weaknesses = set(get_type_weaknesses(t))
+            if not t_weaknesses.intersection(adjusted_weaknesses):
+                recommended.add(t)
+    return recommended
+
 def option_one():
+    print("\nNote: For regional forms, please enter the Pokémon name followed by a dash and the region code.")
+    print("For example:")
+    print("  - 'Raichu-A' for Alolan Raichu")
+    print("  - 'Meowth-G' for Galarian Meowth")
+    print("  - 'Growlithe-H' for Hisuian Growlithe")
+    print("  - 'Wooper-P' for Paldean Wooper\n")
+
     pokemon_names = []
     for i in range(1, 4):
         while True:
             name = input(f"Enter the name of Pokémon {i} (or press Enter to skip): ").strip()
             if not name:
-                break  # User chose to skip
+                # User chose to skip this Pokémon
+                break  # Break from 'while True', proceed to next 'i' in 'for' loop
             types = get_pokemon_types(name)
             if types:
                 pokemon_names.append(name.strip().title())
-                break  # Valid Pokémon found, proceed to next
+                break  # Valid Pokémon found, proceed to next Pokémon
             else:
                 print(f"Pokémon '{name}' not found in the database. Please try again.")
-        else:
-            continue
-        break  # Exit if the user skips input
 
     if not pokemon_names:
         print("No Pokémon entered. Exiting option.")
@@ -1196,9 +1277,10 @@ def option_one():
     team_types = []
     for name in pokemon_names:
         types = get_pokemon_types(name)
-        team_types.extend(types)
+        for t in types:
+            if t not in team_types:
+                team_types.append(t)
 
-    team_types = set(team_types)
     weaknesses = get_weaknesses(team_types)
     resistances = get_resistances(team_types)
     immunities = get_immunities(team_types)
