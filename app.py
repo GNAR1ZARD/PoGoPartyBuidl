@@ -1256,7 +1256,7 @@ def option_one():
     print("  - 'Growlithe-H' for Hisuian Growlithe")
     print("  - 'Wooper-P' for Paldean Wooper\n")
 
-    pokemon_names = []
+    pokemon_entries = []
     for i in range(1, 4):
         while True:
             name = input(f"Enter the name of Pokémon {i} (or press Enter to skip): ").strip()
@@ -1265,75 +1265,127 @@ def option_one():
                 break  # Break from 'while True', proceed to next 'i' in 'for' loop
             types = get_pokemon_types(name)
             if types:
-                pokemon_names.append(name.strip().title())
+                pokemon_entries.append({'name': name.strip().title(), 'types': types})
                 break  # Valid Pokémon found, proceed to next Pokémon
             else:
                 print(f"Pokémon '{name}' not found in the database. Please try again.")
 
-    if not pokemon_names:
+    if not pokemon_entries:
         print("No Pokémon entered. Exiting option.")
         return
 
     team_types = []
-    for name in pokemon_names:
-        types = get_pokemon_types(name)
+    team_weaknesses = []
+    team_resistances = []
+    team_immunities = []
+    for entry in pokemon_entries:
+        name = entry['name']
+        types = entry['types']
+        # print(f"\n{name}'s types are: {types}")
         for t in types:
             if t not in team_types:
                 team_types.append(t)
-
-    weaknesses = get_weaknesses(team_types)
-    resistances = get_resistances(team_types)
-    immunities = get_immunities(team_types)
-    covered_types = resistances.union(immunities)
+            # Collect weaknesses, resistances, immunities per type, maintaining order
+            weaknesses = type_weaknesses.get(t, [])
+            resistances = type_resistances.get(t, [])
+            immunities = type_immunities.get(t, [])
+            # Add to team lists while preserving order and avoiding duplicates
+            for w in weaknesses:
+                if w not in team_weaknesses:
+                    team_weaknesses.append(w)
+            for r in resistances:
+                if r not in team_resistances:
+                    team_resistances.append(r)
+            for i in immunities:
+                if i not in team_immunities:
+                    team_immunities.append(i)
 
     # Adjust weaknesses based on resistances and immunities
-    adjusted_weaknesses = weaknesses - covered_types
+    covered_types = set(team_resistances).union(set(team_immunities))
+    adjusted_weaknesses = [w for w in team_weaknesses if w not in covered_types]
 
     print(f"\nYour team's types are: {team_types}")
-    print(f"Weaknesses: {weaknesses}")
-    print(f"Resistances: {resistances}")
-    print(f"Immunities: {immunities}")
-    print(f"Adjusted Weaknesses (after considering resistances and immunities): {adjusted_weaknesses}")
+    # print(f"\nGross Weaknesses: {weaknesses}")
+    # print(f"\nResistances: {resistances}")
+    # print(f"\nImmunities: {immunities}")
+    print(f"\nWeaknesses: {adjusted_weaknesses}") # (after considering resistances and immunities)
 
-    recommended_types = recommend_types(adjusted_weaknesses)
-    print(f"Recommended types to cover weaknesses (without conflicting weaknesses): {recommended_types}")
+    if len(pokemon_entries) < 3:
+        recommended_types = recommend_types(set(adjusted_weaknesses))
+        print(f"Recommended types to cover weaknesses (without conflicting weaknesses): {recommended_types}")
 
 def option_two():
-    valid_types = set(type_weaknesses.keys())
-    while True:
-        type_input = input("Enter your team's types (comma-separated): ").strip()
-        if not type_input:
-            print("No types entered. Please enter at least one type.")
-            continue
-        types = [t.strip().capitalize() for t in type_input.split(',') if t.strip()]
-        types = set(types)  # Remove duplicates
+    valid_types = list(type_weaknesses.keys())
+    pokemon_entries = []
+    for i in range(1, 4):
+        while True:
+            type_input = input(f"Enter the types for Pokémon {i} (comma-separated, or press Enter to skip): ").strip()
+            if not type_input:
+                # User chose to skip this Pokémon
+                break  # Proceed to next Pokémon
+            types = [t.strip().capitalize() for t in type_input.split(',') if t.strip()]
+            invalid_types = [t for t in types if t not in valid_types]
+            if invalid_types:
+                print(f"Invalid types entered: {invalid_types}")
+                print(f"Valid types are: {valid_types}")
+                print("Please re-enter the types for this Pokémon.")
+                continue
+            else:
+                pokemon_entries.append({'types': types})
+                break  # Valid types entered, proceed to next Pokémon
 
-        invalid_types = types - valid_types
-        if invalid_types:
-            print(f"Invalid types entered: {invalid_types}")
-            print(f"Valid types are: {valid_types}")
-            print("Please re-enter your team's types.")
-            continue
-        else:
-            break  # All types are valid
+    if not pokemon_entries:
+        print("No Pokémon types entered. Exiting option.")
+        return
 
-    weaknesses = get_weaknesses(types)
-    resistances = get_resistances(types)
-    immunities = get_immunities(types)
-    covered_types = resistances.union(immunities)
+    team_types = []
+    team_weaknesses = []
+    team_resistances = []
+    team_immunities = []
+    team_offensive_strengths = []
+
+    for idx, entry in enumerate(pokemon_entries, start=1):
+        types = entry['types']
+        print(f"\nPokémon {idx}'s types are: {types}")
+        for t in types:
+            if t not in team_types:
+                team_types.append(t)
+            # Collect weaknesses, resistances, immunities per type, maintaining order
+            weaknesses = type_weaknesses.get(t, [])
+            resistances = type_resistances.get(t, [])
+            immunities = type_immunities.get(t, [])
+            strengths = type_strengths.get(t, [])
+            # Add to team lists while preserving order and avoiding duplicates
+            for w in weaknesses:
+                if w not in team_weaknesses:
+                    team_weaknesses.append(w)
+            for r in resistances:
+                if r not in team_resistances:
+                    team_resistances.append(r)
+            for i in immunities:
+                if i not in team_immunities:
+                    team_immunities.append(i)
+            for s in strengths:
+                if s not in team_offensive_strengths:
+                    team_offensive_strengths.append(s)
 
     # Adjust weaknesses based on resistances and immunities
-    adjusted_weaknesses = weaknesses - covered_types
+    covered_types_defensively = set(team_resistances).union(set(team_immunities))
+    adjusted_weaknesses_defensive = [w for w in team_weaknesses if w not in covered_types_defensively]
 
-    print(f"\nYour team's types are: {types}")
-    print(f"Weaknesses: {weaknesses}")
-    print(f"Resistances: {resistances}")
-    print(f"Immunities: {immunities}")
-    print(f"Adjusted Weaknesses (after considering resistances and immunities): {adjusted_weaknesses}")
+    # Adjust weaknesses based on offensive strengths
+    adjusted_weaknesses = [w for w in adjusted_weaknesses_defensive if w not in team_offensive_strengths]
 
-    recommended_types = recommend_types(adjusted_weaknesses)
-    print(f"Recommended types to cover weaknesses (without conflicting weaknesses): {recommended_types}")
+    print(f"\nYour team's types are: {team_types}")
+    print(f"Weaknesses (before offensive coverage): {adjusted_weaknesses_defensive}")
+    print(f"Offensive strengths: {team_offensive_strengths}")
+    print(f"Weaknesses (after considering offensive coverage): {adjusted_weaknesses}")
 
+    # Decide whether to print recommended types
+    if len(pokemon_entries) < 3:
+        recommended_types = recommend_types(set(adjusted_weaknesses))
+        print(f"\nRecommended types to cover remaining weaknesses (without conflicting weaknesses): {recommended_types}")
+        
 def main():
     print("Choose an option:")
     print("1. Enter up to three Pokémon names.")
