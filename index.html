@@ -1,0 +1,57 @@
+<!-- index.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>PoGo Party Builder</title>
+  <!-- Bootstrap CSS for styling (optional but recommended) -->
+  <link
+    rel="stylesheet"
+    href="https://maxcdn.bootstrapcdn.com/bootstrap/4.5.2/css/bootstrap.min.css"
+  />
+  <!-- Custom CSS -->
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="container mt-5">
+    <h1 class="mb-4 text-center">Pokémon Go Party Builder</h1>
+
+    <!-- Added usage instructions here -->
+    <p class="lead text-center">
+      Enter up to three Pokémon types to check your team's weaknesses and coverage.
+      Get recommended typings if your team is incomplete!
+    </p>
+
+    <div id="valid-types" class="mb-4"></div>
+
+    <form id="types-form">
+      <div class="form-group">
+        <label for="types1">Types for Pokémon 1 (comma-separated):</label>
+        <input type="text" class="form-control" id="types1" name="types1" placeholder="e.g., Fire, Flying" />
+      </div>
+      <div class="form-group">
+        <label for="types2">Types for Pokémon 2 (comma-separated):</label>
+        <input type="text" class="form-control" id="types2" name="types2" placeholder="e.g., Fire, Flying" />
+      </div>
+      <div class="form-group">
+        <label for="types3">Types for Pokémon 3 (comma-separated):</label>
+        <input type="text" class="form-control" id="types3" name="types3" placeholder="e.g., Fire, Flying" />
+      </div>
+      <button type="submit" class="btn btn-primary">Submit</button>
+    </form>
+
+    <div id="error-message" class="mt-4"></div>
+    <div id="results" class="mt-5"></div>
+  </div>
+
+  <!-- Include data and script files -->
+  <script src="data.js"></script>
+  <script src="script.js"></script>
+
+  <!-- Bootstrap JS and dependencies (optional) -->
+  <script src="https://code.jquery.com/jquery-3.5.1.slim.min.js"></script>
+  <script
+    src="https://cdn.jsdelivr.net/npm/bootstrap@4.5.2/dist/js/bootstrap.bundle.min.js"
+  ></script>
+</body>
+</html>

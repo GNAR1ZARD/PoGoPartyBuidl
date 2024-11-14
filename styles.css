@@ -1,0 +1,44 @@
+/* styles.css */
+
+/* Body styling */
+body {
+    font-family: Arial, sans-serif;
+    background-color: #f7f7f7;
+  }
+  
+  /* Center headings */
+  h1,
+  h3 {
+    text-align: center;
+  }
+  
+  /* Form styling */
+  form {
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+  }
+  
+  /* Results styling */
+  #results h3 {
+    margin-top: 30px;
+  }
+  
+  #results p {
+    background-color: #fff;
+    padding: 15px;
+    border-radius: 5px;
+  }
+  
+  /* Error message styling */
+  .alert {
+    margin-top: 20px;
+  }
+  
+  .container {
+    background-color: #ffffff;
+    padding: 30px;
+    border-radius: 8px;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+  }
+  
