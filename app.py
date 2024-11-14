@@ -1,21 +1,7 @@
-# How the Program Works:
+from flask import Flask, render_template, request
+import sys
 
-# Type Definitions:
-
-# type_weaknesses: A dictionary mapping each Pokémon type to its weaknesses.
-# type_strengths: A dictionary mapping each Pokémon type to the types it is strong against.
-# pokemon_typings: A dictionary mapping Pokémon names to their types.
-# Functions:
-
-# get_pokemon_types(pokemon_name): Returns the types of the given Pokémon.
-# get_weaknesses(types): Calculates weaknesses based on the Pokémon's types.
-# recommend_types(weaknesses): Suggests types that are strong against the team's weaknesses.
-# Main Program Flow:
-
-# Prompts the user to enter up to three Pokémon names.
-# Retrieves and combines their types.
-# Calculates the combined weaknesses.
-# Recommends types to cover these weaknesses.
+app = Flask(__name__)
 
 # Define type weaknesses
 type_weaknesses = {
@@ -1248,32 +1234,56 @@ def recommend_types(adjusted_weaknesses):
                 recommended.add(t)
     return recommended
 
+@app.route('/')
+def home():
+    return render_template('home.html')
+
+@app.route('/option_one', methods=['GET', 'POST'])
 def option_one():
-    print("\nNote: For regional forms, please enter the Pokémon name followed by a dash and the region code.")
-    print("For example:")
-    print("  - 'Raichu-A' for Alolan Raichu")
-    print("  - 'Meowth-G' for Galarian Meowth")
-    print("  - 'Growlithe-H' for Hisuian Growlithe")
-    print("  - 'Wooper-P' for Paldean Wooper\n")
+    if request.method == 'POST':
+        pokemon_entries = []
+        for i in range(1, 4):
+            name = request.form.get(f'pokemon{i}')
+            if name:
+                types = get_pokemon_types(name)
+                if types:
+                    pokemon_entries.append({'name': name.strip().title(), 'types': types})
+                else:
+                    error = f"Pokémon '{name}' not found in the database."
+                    return render_template('option_one.html', error=error)
+        if not pokemon_entries:
+            error = "No Pokémon entered."
+            return render_template('option_one.html', error=error)
+        # Process the team and render results
+        result = process_team(pokemon_entries)
+        return render_template('results.html', result=result)
+    else:
+        return render_template('option_one.html')
 
-    pokemon_entries = []
-    for i in range(1, 4):
-        while True:
-            name = input(f"Enter the name of Pokémon {i} (or press Enter to skip): ").strip()
-            if not name:
-                # User chose to skip this Pokémon
-                break  # Break from 'while True', proceed to next 'i' in 'for' loop
-            types = get_pokemon_types(name)
-            if types:
-                pokemon_entries.append({'name': name.strip().title(), 'types': types})
-                break  # Valid Pokémon found, proceed to next Pokémon
-            else:
-                print(f"Pokémon '{name}' not found in the database. Please try again.")
+@ app.route('/option_two', methods=['GET', 'POST'])
+def option_two():
+    valid_types = sorted(type_weaknesses.keys())
+    if request.method == 'POST':
+        pokemon_entries = []
+        for i in range(1, 4):
+            type_input = request.form.get(f'types{i}')
+            if type_input:
+                types = [t.strip().capitalize() for t in type_input.split(',') if t.strip()]
+                invalid_types = [t for t in types if t not in type_weaknesses]
+                if invalid_types:
+                    error = f"Invalid types entered: {invalid_types}"
+                    return render_template('option_two.html', error=error, valid_types=valid_types)
+                pokemon_entries.append({'types': types})
+        if not pokemon_entries:
+            error = "No types entered."
+            return render_template('option_two.html', error=error, valid_types=valid_types)
+        # Process the team and render results
+        result = process_team_types(pokemon_entries)
+        return render_template('results.html', result=result)
+    else:
+        return render_template('option_two.html', valid_types=valid_types)
 
-    if not pokemon_entries:
-        print("No Pokémon entered. Exiting option.")
-        return
-
+def process_team(pokemon_entries):
     team_types = []
     team_weaknesses = []
     team_resistances = []
@@ -1283,16 +1293,13 @@ def option_one():
     for entry in pokemon_entries:
         name = entry['name']
         types = entry['types']
-        print(f"\n{name}'s types are: {types}")
         for t in types:
             if t not in team_types:
                 team_types.append(t)
-            # Collect weaknesses, resistances, immunities, and offensive strengths per type, maintaining order
             weaknesses = type_weaknesses.get(t, [])
             resistances = type_resistances.get(t, [])
             immunities = type_immunities.get(t, [])
             strengths = type_strengths.get(t, [])
-            # Add to team lists while preserving order and avoiding duplicates
             for w in weaknesses:
                 if w not in team_weaknesses:
                     team_weaknesses.append(w)
@@ -1306,47 +1313,25 @@ def option_one():
                 if s not in team_offensive_strengths:
                     team_offensive_strengths.append(s)
 
-    # Adjust weaknesses based on resistances and immunities
     covered_types_defensively = set(team_resistances).union(set(team_immunities))
     adjusted_weaknesses_defensive = [w for w in team_weaknesses if w not in covered_types_defensively]
-
-    # Adjust weaknesses based on offensive strengths
     adjusted_weaknesses = [w for w in adjusted_weaknesses_defensive if w not in team_offensive_strengths]
 
-    print(f"\nYour team's types are: {team_types}")
-    print(f"Weaknesses (before offensive coverage): {adjusted_weaknesses_defensive}")
-    print(f"Offensive strengths: {team_offensive_strengths}")
-    print(f"Weaknesses (after considering offensive coverage): {adjusted_weaknesses}")
+    recommend = len(pokemon_entries) < 3
+    recommended_types = recommend_types(set(adjusted_weaknesses)) if recommend else None
 
-    # Decide whether to print recommended types
-    if len(pokemon_entries) < 3:
-        recommended_types = recommend_types(set(adjusted_weaknesses))
-        print(f"\nRecommended types to cover remaining weaknesses (without conflicting weaknesses): {recommended_types}")
+    result = {
+        'team_types': team_types,
+        'adjusted_weaknesses_defensive': adjusted_weaknesses_defensive,
+        'team_offensive_strengths': team_offensive_strengths,
+        'adjusted_weaknesses': adjusted_weaknesses,
+        'recommended_types': recommended_types,
+        'recommend': recommend,
+        'pokemon_entries': pokemon_entries,
+    }
+    return result
 
-def option_two():
-    valid_types = list(type_weaknesses.keys())
-    pokemon_entries = []
-    for i in range(1, 4):
-        while True:
-            type_input = input(f"Enter the types for Pokémon {i} (comma-separated, or press Enter to skip): ").strip()
-            if not type_input:
-                # User chose to skip this Pokémon
-                break  # Proceed to next Pokémon
-            types = [t.strip().capitalize() for t in type_input.split(',') if t.strip()]
-            invalid_types = [t for t in types if t not in valid_types]
-            if invalid_types:
-                print(f"Invalid types entered: {invalid_types}")
-                print(f"Valid types are: {valid_types}")
-                print("Please re-enter the types for this Pokémon.")
-                continue
-            else:
-                pokemon_entries.append({'types': types})
-                break  # Valid types entered, proceed to next Pokémon
-
-    if not pokemon_entries:
-        print("No Pokémon types entered. Exiting option.")
-        return
-
+def process_team_types(pokemon_entries):
     team_types = []
     team_weaknesses = []
     team_resistances = []
@@ -1355,16 +1340,13 @@ def option_two():
 
     for idx, entry in enumerate(pokemon_entries, start=1):
         types = entry['types']
-        print(f"\nPokémon {idx}'s types are: {types}")
         for t in types:
             if t not in team_types:
                 team_types.append(t)
-            # Collect weaknesses, resistances, immunities per type, maintaining order
             weaknesses = type_weaknesses.get(t, [])
             resistances = type_resistances.get(t, [])
             immunities = type_immunities.get(t, [])
             strengths = type_strengths.get(t, [])
-            # Add to team lists while preserving order and avoiding duplicates
             for w in weaknesses:
                 if w not in team_weaknesses:
                     team_weaknesses.append(w)
@@ -1378,37 +1360,23 @@ def option_two():
                 if s not in team_offensive_strengths:
                     team_offensive_strengths.append(s)
 
-    # Adjust weaknesses based on resistances and immunities
     covered_types_defensively = set(team_resistances).union(set(team_immunities))
     adjusted_weaknesses_defensive = [w for w in team_weaknesses if w not in covered_types_defensively]
-
-    # Adjust weaknesses based on offensive strengths
     adjusted_weaknesses = [w for w in adjusted_weaknesses_defensive if w not in team_offensive_strengths]
 
-    print(f"\nYour team's types are: {team_types}")
-    print(f"Weaknesses (before offensive coverage): {adjusted_weaknesses_defensive}")
-    print(f"Offensive strengths: {team_offensive_strengths}")
-    print(f"Weaknesses (after considering offensive coverage): {adjusted_weaknesses}")
+    recommend = len(pokemon_entries) < 3
+    recommended_types = recommend_types(set(adjusted_weaknesses)) if recommend else None
 
-    # Decide whether to print recommended types
-    if len(pokemon_entries) < 3:
-        recommended_types = recommend_types(set(adjusted_weaknesses))
-        print(f"\nRecommended types to cover remaining weaknesses (without conflicting weaknesses): {recommended_types}")
-        
-def main():
-    print("Choose an option:")
-    print("1. Enter up to three Pokémon names.")
-    print("2. Enter a comma-separated list of your team's types.")
-    while True:
-        choice = input("Enter 1 or 2: ").strip()
-        if choice == '1':
-            option_one()
-            break
-        elif choice == '2':
-            option_two()
-            break
-        else:
-            print("Invalid choice. Please enter '1' or '2'.")
+    result = {
+        'team_types': team_types,
+        'adjusted_weaknesses_defensive': adjusted_weaknesses_defensive,
+        'team_offensive_strengths': team_offensive_strengths,
+        'adjusted_weaknesses': adjusted_weaknesses,
+        'recommended_types': recommended_types,
+        'recommend': recommend,
+        'pokemon_entries': pokemon_entries,
+    }
+    return result
 
-if __name__ == "__main__":
-    main()
+if __name__ == '__main__':
+    app.run(debug=True)
