@@ -72,3 +72,28 @@ By enforcing strict input validation and sanitization, the application not only 
 - **CSS3**: Styling to enhance the visual appearance.
 - **JavaScript**: Client-side scripting for interactive features.
 - **GitHub Pages**: Hosting platform for the application.
+
+## 🤝 Contributing
+
+Contributions are welcome! Whether you're a developer or not, there are several ways you can help improve the application:
+
+- **Create an Issue**: If you have suggestions for new features, enhancements, or have found a bug, please [open an issue](https://github.com/gnar1zard/PoGoPartyBuidl/issues). Your feedback is valuable and helps make the application better for everyone.
+
+- **Developers**: If you'd like to contribute code or fix issues:
+  1. **Fork the Repository**: Click the "Fork" button at the top right of the repository page.
+  2. **Create a New Branch**: In your forked repository, create a new branch for your feature or fix:
+     ```bash
+     git checkout -b feature/your-feature-name
+     ```
+  3. **Make Changes**: Implement your feature or bug fix.
+  4. **Commit Your Changes**:
+     ```bash
+     git commit -m 'Add your feature'
+     ```
+  5. **Push to Your Branch**:
+     ```bash
+     git push origin feature/your-feature-name
+     ```
+  6. **Open a Pull Request**: Go to the original repository and open a pull request from your branch. Provide a clear description of your changes.
+
+Your participation helps the project grow and improves the experience for all users.
