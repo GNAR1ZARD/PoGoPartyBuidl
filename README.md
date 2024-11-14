@@ -51,6 +51,21 @@ Let's say you have the following team:
 - **Adjusted Weaknesses**: Electric
 - **Recommended Types**: Ground
 
+## ❗ Input Validation and Error Handling
+
+- **Input Validation and Sanitization**: The application incorporates robust input validation and sanitization mechanisms to protect against injection attacks, such as Cross-Site Scripting (XSS). All user inputs are carefully validated against a list of valid Pokémon types and sanitized before processing. This ensures that only legitimate data is used, maintaining the security and integrity of the application.
+
+- **Invalid Types**: If you enter an **invalid type**, the application will display an error message specifying which types are invalid. This helps you quickly identify and correct any typos or mistakes.
+
+- **No Types Entered**: If **no types** are entered, an error message will prompt you to input at least one type to proceed with the analysis.
+
+- **Input Format**: The application accepts types in a specific format to ensure proper processing:
+  - **Capitalization**: Types are case-insensitive but will be normalized to have the first letter capitalized (e.g., `fire` becomes `Fire`).
+  - **Separation**: For dual-type Pokémon, separate types with a comma (e.g., `Fire, Flying`).
+  - **Whitespaces**: Extra spaces before or after type names are trimmed automatically.
+
+By enforcing strict input validation and sanitization, the application not only enhances user experience by providing immediate feedback but also safeguards against potential security vulnerabilities associated with handling user-provided data.
+
 ## 🛠️ Built With
 
 - **HTML5**: Markup language for structuring the web page.
