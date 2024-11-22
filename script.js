@@ -14,15 +14,22 @@ function processTeamTypes(pokemonEntries) {
   const teamImmunities = new Set();
   const teamOffensiveStrengths = new Set();
 
+  const pokemonWeaknesses = []; // Array to store weaknesses of each Pokémon
+
   // Aggregate team types and their defensive and offensive properties
   pokemonEntries.forEach((entry) => {
     const types = entry.types;
+    const weaknessesSet = new Set(); // Weaknesses for this Pokémon
+
     types.forEach((t) => {
       teamTypes.add(t);
 
       // Defensive Weaknesses
       const weaknesses = typeWeaknesses[t] || [];
-      weaknesses.forEach((w) => teamWeaknesses.add(w));
+      weaknesses.forEach((w) => {
+        teamWeaknesses.add(w);
+        weaknessesSet.add(w);
+      });
 
       // Defensive Resistances
       const resistances = typeResistances[t] || [];
@@ -36,6 +43,8 @@ function processTeamTypes(pokemonEntries) {
       const strengths = typeStrengths[t] || [];
       strengths.forEach((s) => teamOffensiveStrengths.add(s));
     });
+
+    pokemonWeaknesses.push(weaknessesSet); // Add this Pokémon's weaknesses to the array
   });
 
   // Calculate covered types defensively
@@ -75,6 +84,8 @@ function processTeamTypes(pokemonEntries) {
     grade = calculateGrade(adjustedWeaknesses.length);
   }
 
+  // Find weaknesses shared by at least two Pokémon
+  const sharedWeaknesses = findSharedWeaknesses(pokemonWeaknesses);
 
   const result = {
     teamTypes: Array.from(teamTypes),
@@ -84,10 +95,35 @@ function processTeamTypes(pokemonEntries) {
     recommendedTypes: displayedRecommendedTypes,
     recommend,
     pokemonEntries,
-    grade, // Added grade to the result
+    grade,
+    sharedWeaknesses, // Add shared weaknesses to the result
   };
 
   return result;
+}
+
+/**
+ * Finds weaknesses shared by at least two Pokémon.
+ * @param {Array} pokemonWeaknesses - Array of Sets containing weaknesses of each Pokémon.
+ * @returns {Array} Array of weaknesses shared by at least two Pokémon.
+ */
+function findSharedWeaknesses(pokemonWeaknesses) {
+  const weaknessCount = {};
+
+  pokemonWeaknesses.forEach((weaknesses) => {
+    weaknesses.forEach((w) => {
+      weaknessCount[w] = (weaknessCount[w] || 0) + 1;
+    });
+  });
+
+  const sharedWeaknesses = [];
+  for (const [weakness, count] of Object.entries(weaknessCount)) {
+    if (count >= 2) {
+      sharedWeaknesses.push(weakness);
+    }
+  }
+
+  return sharedWeaknesses;
 }
 
 /**
@@ -340,4 +376,18 @@ function displayResults(result) {
     }
     resultsDiv.appendChild(paragraph);
   });
+
+  // Display warning if two Pokémon are weak to the same type
+  if (result.sharedWeaknesses && result.sharedWeaknesses.length > 0) {
+    const warningHeading = document.createElement("h3");
+    warningHeading.textContent = "Warning:";
+    resultsDiv.appendChild(warningHeading);
+
+    const warningParagraph = document.createElement("p");
+    warningParagraph.style.color = "red";
+    warningParagraph.textContent = `Two or more of your Pokémon are weak to the following types: ${result.sharedWeaknesses.join(
+      ", "
+    )}`;
+    resultsDiv.appendChild(warningParagraph);
+  }
 }
