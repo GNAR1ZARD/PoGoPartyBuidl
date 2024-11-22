@@ -16,7 +16,7 @@
   <div class="container mt-5">
     <h1 class="mb-4 text-center">Pokémon Go Party Builder</h1>
 
-    <!-- Added usage instructions here -->
+    <!-- Usage Instructions -->
     <p class="lead text-center">
       Enter up to three Pokémon types to check your team's weaknesses and coverage.
       Get recommended typings if your team is incomplete!
@@ -27,15 +27,42 @@
     <form id="types-form">
       <div class="form-group">
         <label for="types1">Types for Pokémon 1 (comma-separated):</label>
-        <input type="text" class="form-control" id="types1" name="types1" placeholder="e.g., Fire, Flying" />
+        <input
+          type="text"
+          class="form-control"
+          id="types1"
+          name="types1"
+          placeholder="e.g., Fire, Flying"
+          maxlength="50"
+          pattern="^[a-zA-Z, ]+$"
+          title="Please enter only letters, commas, and spaces."
+        />
       </div>
       <div class="form-group">
         <label for="types2">Types for Pokémon 2 (comma-separated):</label>
-        <input type="text" class="form-control" id="types2" name="types2" placeholder="e.g., Fire, Flying" />
+        <input
+          type="text"
+          class="form-control"
+          id="types2"
+          name="types2"
+          placeholder="e.g., Water, Ground"
+          maxlength="50"
+          pattern="^[a-zA-Z, ]+$"
+          title="Please enter only letters, commas, and spaces."
+        />
       </div>
       <div class="form-group">
         <label for="types3">Types for Pokémon 3 (comma-separated):</label>
-        <input type="text" class="form-control" id="types3" name="types3" placeholder="e.g., Fire, Flying" />
+        <input
+          type="text"
+          class="form-control"
+          id="types3"
+          name="types3"
+          placeholder="e.g., Grass, Poison"
+          maxlength="50"
+          pattern="^[a-zA-Z, ]+$"
+          title="Please enter only letters, commas, and spaces."
+        />
       </div>
       <button type="submit" class="btn btn-primary">Submit</button>
     </form>
@@ -46,6 +73,8 @@
 
   <!-- Include data and script files -->
   <script src="data.js"></script>
+  <!-- Include Canvas Confetti Library -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.5.1/dist/confetti.browser.min.js"></script>
   <script src="script.js"></script>
 
   <!-- Bootstrap JS and dependencies (optional) -->
