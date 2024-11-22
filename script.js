@@ -56,9 +56,9 @@ function processTeamTypes(pokemonEntries) {
 
   // Determine if recommendations are needed
   const recommend = pokemonEntries.length < 3;
-  let recommendedTypes = recommend
-    ? recommendTypes(new Set(adjustedWeaknesses))
-    : [];
+
+  // Always calculate recommendedTypes for grading purposes
+  let recommendedTypes = recommendTypes(new Set(adjustedWeaknesses));
 
   // Sort recommended types based on coverage of adjusted weaknesses
   recommendedTypes = sortRecommendedTypes(
@@ -66,18 +66,22 @@ function processTeamTypes(pokemonEntries) {
     new Set(adjustedWeaknesses)
   );
 
+  // Only include recommendations in the result if recommend is true
+  const displayedRecommendedTypes = recommend ? recommendedTypes : [];
+
   // Calculate grade if the team is full (3 Pokémon)
   let grade = null;
   if (pokemonEntries.length === 3) {
     grade = calculateGrade(adjustedWeaknesses.length);
   }
 
+
   const result = {
     teamTypes: Array.from(teamTypes),
     adjustedWeaknessesDefensive,
     teamOffensiveStrengths: Array.from(teamOffensiveStrengths),
     adjustedWeaknesses,
-    recommendedTypes,
+    recommendedTypes: displayedRecommendedTypes,
     recommend,
     pokemonEntries,
     grade, // Added grade to the result
@@ -129,7 +133,7 @@ function sortRecommendedTypes(recommendedTypes, adjustedWeaknesses) {
       return { type, coverage };
     })
     // Sort types by coverage in descending order
-    .sort((a, b) => b.coverage - a.coverage)
+    .sort((a, b) => b.coverage - a.coverage || a.type.localeCompare(b.type))
     // Return only the type names, ordered by coverage
     .map((item) => item.type);
 }
@@ -243,8 +247,6 @@ function displayResults(result) {
     "Weaknesses (Defensive):",
     "Offensive Strengths:",
     "Adjusted Weaknesses (After Offensive Coverage):",
-    "Recommended Types to Cover Remaining Weaknesses:",
-    "Team Grade:", // Added grade heading
   ];
 
   const data = [
@@ -252,19 +254,24 @@ function displayResults(result) {
     result.adjustedWeaknessesDefensive,
     result.teamOffensiveStrengths,
     result.adjustedWeaknesses,
-    result.recommendedTypes,
-    result.grade, // Added grade data
   ];
+
+  // Only display recommendations if 'recommend' is true
+  if (result.recommend) {
+    headings.push("Recommended Types to Cover Remaining Weaknesses:");
+    data.push(result.recommendedTypes);
+  }
+
+  // Only display "Team Grade:" if the team is full (3 Pokémon)
+  if (result.grade !== null) {
+    headings.push("Team Grade:");
+    data.push(result.grade);
+  }
 
   // Convert adjustedWeaknesses to a Set for efficient lookup
   const adjustedWeaknessesSet = new Set(result.adjustedWeaknesses);
 
   headings.forEach((headingText, index) => {
-    // Only display "Team Grade:" if the team is full (3 Pokémon)
-    if (headingText === "Team Grade:" && result.pokemonEntries.length !== 3) {
-      return;
-    }
-
     const heading = document.createElement("h3");
     heading.textContent = headingText;
     resultsDiv.appendChild(heading);
@@ -276,7 +283,7 @@ function displayResults(result) {
     ) {
       if (headingText === "Recommended Types to Cover Remaining Weaknesses:") {
         if (data[index].length > 0) {
-          // Enhance display with coverage count
+          // Display types with coverage counts
           const recommendedWithCount = data[index].map((type) => {
             const coverage = typeStrengths[type].filter((strength) =>
               adjustedWeaknessesSet.has(strength)
@@ -296,13 +303,13 @@ function displayResults(result) {
           const animationEnd = Date.now() + duration;
 
           const colors = [
-            '#FF0000', // Red
-            '#FFA500', // Orange
-            '#FFFF00', // Yellow
-            '#00FF00', // Green
-            '#00FFFF', // Cyan
-            '#0000FF', // Blue
-            '#FF00FF', // Magenta
+            "#FF0000", // Red
+            "#FFA500", // Orange
+            "#FFFF00", // Yellow
+            "#00FF00", // Green
+            "#00FFFF", // Cyan
+            "#0000FF", // Blue
+            "#FF00FF", // Magenta
           ];
 
           (function frame() {
