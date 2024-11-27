@@ -67,7 +67,14 @@ function processTeamTypes(pokemonEntries) {
   const recommend = pokemonEntries.length < 3;
 
   // Always calculate recommendedTypes for grading purposes
-  let recommendedTypes = recommendTypes(new Set(adjustedWeaknesses));
+  let recommendedTypes = recommendTypes(
+    new Set(adjustedWeaknesses),
+    teamTypes,
+    teamWeaknesses,
+    teamResistances,
+    teamImmunities,
+    teamOffensiveStrengths
+  );
 
   // Sort recommended types based on coverage of adjusted weaknesses
   recommendedTypes = sortRecommendedTypes(
@@ -103,6 +110,118 @@ function processTeamTypes(pokemonEntries) {
 }
 
 /**
+ * Recommends types to cover remaining weaknesses, ensuring they are a net positive.
+ * @param {Set} adjustedWeaknessesSet - Set of remaining weaknesses.
+ * @param {Set} teamTypes - Current team types.
+ * @returns {Array} Array of recommended types.
+ */
+function recommendTypes(
+  adjustedWeaknessesSet,
+  teamTypes,
+  teamWeaknesses,
+  teamResistances,
+  teamImmunities,
+  teamOffensiveStrengths
+) {
+  const recommended = [];
+
+  const originalAdjustedWeaknesses = Array.from(adjustedWeaknessesSet);
+
+  for (const type of Object.keys(typeStrengths)) {
+    if (teamTypes.has(type)) {
+      continue; // Skip types already in the team
+    }
+
+    // Check if the type covers any adjusted weaknesses
+    const coverage = typeStrengths[type].filter((s) =>
+      adjustedWeaknessesSet.has(s)
+    ).length;
+    if (coverage === 0) {
+      continue; // Skip types that don't cover any adjusted weaknesses
+    }
+
+    // Simulate adding the type to the team
+    const newTeamTypes = new Set([...teamTypes, type]);
+
+    // Compute adjusted weaknesses for the new team
+    const newAdjustedWeaknesses = getAdjustedWeaknesses(newTeamTypes);
+
+    if (newAdjustedWeaknesses.length < originalAdjustedWeaknesses.length) {
+      // The adjusted weaknesses decreased, recommend this type
+      recommended.push(type);
+    } else if (
+      newAdjustedWeaknesses.length === originalAdjustedWeaknesses.length
+    ) {
+      // Ensure no new weaknesses are introduced
+      const newWeaknesses = typeWeaknesses[type] || [];
+      const coveredTypesDefensively = new Set([
+        ...teamResistances,
+        ...teamImmunities,
+      ]);
+      const potentialNewWeaknesses = newWeaknesses.filter(
+        (w) => !teamWeaknesses.has(w) && !coveredTypesDefensively.has(w)
+      );
+
+      if (potentialNewWeaknesses.length === 0) {
+        // No new weaknesses introduced, recommend this type
+        recommended.push(type);
+      }
+    }
+    // Else, the adjusted weaknesses increased, do not recommend
+  }
+
+  return recommended;
+}
+
+/**
+ * Calculates adjusted weaknesses for a given set of team types.
+ * @param {Set} teamTypes - Set of team types.
+ * @returns {Array} Array of adjusted weaknesses.
+ */
+function getAdjustedWeaknesses(teamTypes) {
+  const teamWeaknesses = new Set();
+  const teamResistances = new Set();
+  const teamImmunities = new Set();
+  const teamOffensiveStrengths = new Set();
+
+  teamTypes.forEach((t) => {
+    // Defensive Weaknesses
+    const weaknesses = typeWeaknesses[t] || [];
+    weaknesses.forEach((w) => teamWeaknesses.add(w));
+
+    // Defensive Resistances
+    const resistances = typeResistances[t] || [];
+    resistances.forEach((r) => teamResistances.add(r));
+
+    // Defensive Immunities
+    const immunities = typeImmunities[t] || [];
+    immunities.forEach((i) => teamImmunities.add(i));
+
+    // Offensive Strengths
+    const strengths = typeStrengths[t] || [];
+    strengths.forEach((s) => teamOffensiveStrengths.add(s));
+  });
+
+  // Calculate covered types defensively
+  const coveredTypesDefensively = new Set([
+    ...teamResistances,
+    ...teamImmunities,
+  ]);
+
+  // Adjusted Weaknesses after considering resistances and immunities
+  const adjustedWeaknessesDefensive = [...teamWeaknesses].filter(
+    (w) => !coveredTypesDefensively.has(w)
+  );
+
+  // Further adjust weaknesses by removing those covered offensively
+  const adjustedWeaknesses = adjustedWeaknessesDefensive.filter(
+    (w) => !teamOffensiveStrengths.has(w)
+  );
+
+  return adjustedWeaknesses;
+}
+
+/**
  * Finds weaknesses shared by at least two Pokémon.
  * @param {Array} pokemonWeaknesses - Array of Sets containing weaknesses of each Pokémon.
  * @returns {Array} Array of weaknesses shared by at least two Pokémon.
@@ -124,32 +243,6 @@ function findSharedWeaknesses(pokemonWeaknesses) {
   }
 
   return sharedWeaknesses;
-}
-
-/**
- * Recommends types to cover remaining weaknesses.
- * @param {Set} adjustedWeaknessesSet - Set of remaining weaknesses.
- * @returns {Array} Array of recommended types.
- */
-function recommendTypes(adjustedWeaknessesSet) {
-  const recommended = new Set();
-
-  adjustedWeaknessesSet.forEach((weakness) => {
-    for (const [type, strengths] of Object.entries(typeStrengths)) {
-      if (strengths.includes(weakness)) {
-        // Ensure the recommended type doesn't have weaknesses to any of the adjusted weaknesses
-        const tWeaknesses = new Set(typeWeaknesses[type] || []);
-        const intersection = [...tWeaknesses].filter((w) =>
-          adjustedWeaknessesSet.has(w)
-        );
-        if (intersection.length === 0) {
-          recommended.add(type);
-        }
-      }
-    }
-  });
-
-  return Array.from(recommended);
 }
 
 /**
