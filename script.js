@@ -9,7 +9,7 @@
  */
 function processTeamTypes(pokemonEntries) {
   const teamTypes = new Set();
-  const teamWeaknesses = new Set();
+  const teamWeaknesses = []; // Changed from Set to Array of Sets
   const teamResistances = new Set();
   const teamImmunities = new Set();
   const teamOffensiveStrengths = new Set();
@@ -27,7 +27,6 @@ function processTeamTypes(pokemonEntries) {
       // Defensive Weaknesses
       const weaknesses = typeWeaknesses[t] || [];
       weaknesses.forEach((w) => {
-        teamWeaknesses.add(w);
         weaknessesSet.add(w);
       });
 
@@ -45,6 +44,13 @@ function processTeamTypes(pokemonEntries) {
     });
 
     pokemonWeaknesses.push(weaknessesSet); // Add this Pokémon's weaknesses to the array
+    teamWeaknesses.push(weaknessesSet); // Add to the team weaknesses array
+  });
+
+  // Flatten team weaknesses into a single array
+  const allTeamWeaknesses = [];
+  teamWeaknesses.forEach((weakSet) => {
+    weakSet.forEach((w) => allTeamWeaknesses.push(w));
   });
 
   // Calculate covered types defensively
@@ -54,7 +60,7 @@ function processTeamTypes(pokemonEntries) {
   ]);
 
   // Adjusted Weaknesses after considering resistances and immunities
-  const adjustedWeaknessesDefensive = [...teamWeaknesses].filter(
+  const adjustedWeaknessesDefensive = [...new Set(allTeamWeaknesses)].filter(
     (w) => !coveredTypesDefensively.has(w)
   );
 
@@ -73,18 +79,8 @@ function processTeamTypes(pokemonEntries) {
     teamWeaknesses,
     teamResistances,
     teamImmunities,
-    teamOffensiveStrengths
-  );
-
-  // Sort recommended types based on coverage of adjusted weaknesses
-  recommendedTypes = sortRecommendedTypes(
-    recommendedTypes,
-    new Set(adjustedWeaknesses)
-  );
-
-  // Filter out less optimal recommendations (e.g., red options)
-  recommendedTypes = recommendedTypes.filter(
-    (item) => item.weaknessChange <= 1
+    teamOffensiveStrengths,
+    pokemonWeaknesses
   );
 
   // Only include recommendations in the result if recommend is true
@@ -108,17 +104,23 @@ function processTeamTypes(pokemonEntries) {
     recommend,
     pokemonEntries,
     grade,
-    sharedWeaknesses, // Add shared weaknesses to the result
+    sharedWeaknesses,
   };
 
   return result;
 }
 
 /**
- * Recommends types (including dual types) to cover remaining weaknesses.
+ * Recommends individual types to cover remaining weaknesses,
+ * avoiding types that introduce shared weaknesses.
  * @param {Set} adjustedWeaknessesSet - Set of remaining weaknesses.
  * @param {Set} teamTypes - Current team types.
- * @returns {Array} Array of recommended types with evaluation.
+ * @param {Array} teamWeaknesses - Array of Sets of weaknesses for each team Pokémon.
+ * @param {Set} teamResistances - Set of team resistances.
+ * @param {Set} teamImmunities - Set of team immunities.
+ * @param {Set} teamOffensiveStrengths - Set of team offensive strengths.
+ * @param {Array} pokemonWeaknesses - Array of Sets of weaknesses for each Pokémon.
+ * @returns {Array} Array of recommended types with coverage.
  */
 function recommendTypes(
   adjustedWeaknessesSet,
@@ -126,7 +128,8 @@ function recommendTypes(
   teamWeaknesses,
   teamResistances,
   teamImmunities,
-  teamOffensiveStrengths
+  teamOffensiveStrengths,
+  pokemonWeaknesses
 ) {
   const recommended = [];
 
@@ -134,51 +137,56 @@ function recommendTypes(
 
   const allTypes = Object.keys(typeStrengths);
 
-  // Generate all possible single and dual-type combinations
-  const typeCombinations = [];
+  allTypes.forEach((type) => {
+    if (teamTypes.has(type)) return; // Skip types already in the team
 
-  for (const type1 of allTypes) {
-    if (teamTypes.has(type1)) continue;
-
-    typeCombinations.push([type1]); // Single type
-
-    for (const type2 of allTypes) {
-      if (type1 === type2 || teamTypes.has(type2)) continue;
-
-      // To avoid duplicate combinations
-      if (type1 < type2) {
-        typeCombinations.push([type1, type2]); // Dual type
-      }
-    }
-  }
-
-  typeCombinations.forEach((combo) => {
-    const comboTypes = new Set(combo);
-
-    // Check if the combination covers any adjusted weaknesses
-    const coverage = getOffensiveStrengths(comboTypes).filter((s) =>
+    // Check if the type covers any adjusted weaknesses
+    const coverage = typeStrengths[type].filter((s) =>
       adjustedWeaknessesSet.has(s)
     ).length;
-    if (coverage === 0) {
-      return; // Skip combinations that don't cover any adjusted weaknesses
-    }
+    if (coverage === 0) return; // Skip types that don't cover any adjusted weaknesses
 
-    // Simulate adding the combination to the team
-    const newTeamTypes = new Set([...teamTypes, ...comboTypes]);
+    // Simulate adding the type to the team
+    const newTeamTypes = new Set([...teamTypes, type]);
 
     // Compute adjusted weaknesses for the new team
     const newAdjustedWeaknesses = getAdjustedWeaknesses(newTeamTypes);
 
-    // Evaluate the combination
+    // Evaluate the type
     const weaknessChange =
       newAdjustedWeaknesses.length - originalAdjustedWeaknesses.length;
 
+    // Get weaknesses of the new type
+    const newTypeWeaknesses = new Set(typeWeaknesses[type] || []);
+
+    // Check for shared weaknesses
+    let introducesSharedWeakness = false;
+    pokemonWeaknesses.forEach((weaknessesSet) => {
+      weaknessesSet.forEach((w) => {
+        if (newTypeWeaknesses.has(w)) {
+          introducesSharedWeakness = true;
+        }
+      });
+    });
+
+    if (introducesSharedWeakness) {
+      return; // Skip types that introduce shared weaknesses
+    }
+
     recommended.push({
-      combo: combo.join(", "),
+      type,
       coverage,
       weaknessChange,
     });
   });
+
+  // Sort recommended types
+  recommended.sort(
+    (a, b) =>
+      b.coverage - a.coverage ||
+      a.weaknessChange - b.weaknessChange ||
+      a.type.localeCompare(b.type)
+  );
 
   return recommended;
 }
@@ -232,20 +240,6 @@ function getAdjustedWeaknesses(teamTypes) {
 }
 
 /**
- * Gets the offensive strengths for a set of types.
- * @param {Set} types - Set of types.
- * @returns {Array} Array of offensive strengths.
- */
-function getOffensiveStrengths(types) {
-  const strengths = new Set();
-  types.forEach((t) => {
-    const typeStrength = typeStrengths[t] || [];
-    typeStrength.forEach((s) => strengths.add(s));
-  });
-  return Array.from(strengths);
-}
-
-/**
  * Finds weaknesses shared by at least two Pokémon.
  * @param {Array} pokemonWeaknesses - Array of Sets containing weaknesses of each Pokémon.
  * @returns {Array} Array of weaknesses shared by at least two Pokémon.
@@ -267,22 +261,6 @@ function findSharedWeaknesses(pokemonWeaknesses) {
   }
 
   return sharedWeaknesses;
-}
-
-/**
- * Sorts recommended types based on coverage and weakness change.
- * @param {Array} recommendedTypes - Array of recommended types with evaluation.
- * @param {Set} adjustedWeaknesses - Set of remaining weaknesses.
- * @returns {Array} Sorted array of recommended types.
- */
-function sortRecommendedTypes(recommendedTypes, adjustedWeaknesses) {
-  return recommendedTypes
-    .sort(
-      (a, b) =>
-        b.coverage - a.coverage ||
-        a.weaknessChange - b.weaknessChange ||
-        a.combo.localeCompare(b.combo)
-    );
 }
 
 /**
@@ -389,8 +367,36 @@ document.addEventListener("DOMContentLoaded", () => {
       data.push(result.grade);
     }
 
-    // Convert adjustedWeaknesses to a Set for efficient lookup
-    const adjustedWeaknessesSet = new Set(result.adjustedWeaknesses);
+    // Determine primary and secondary recommendations
+    const primaryCoverage = result.recommendedTypes.length
+      ? result.recommendedTypes[0].coverage
+      : 0;
+    const primaryTypes = result.recommendedTypes.filter(
+      (item) => item.coverage === primaryCoverage
+    );
+    const primaryTypeNames = primaryTypes.map((item) => item.type);
+
+    // Find complementary types for primary recommendations
+    const remainingWeaknessesAfterPrimary = new Set(result.adjustedWeaknesses);
+    primaryTypes.forEach((item) => {
+      const strengths = typeStrengths[item.type] || [];
+      strengths.forEach((s) => remainingWeaknessesAfterPrimary.delete(s));
+    });
+
+    const complementaryTypes = result.recommendedTypes.filter((item) => {
+      return (
+        item.coverage > 0 &&
+        !primaryTypeNames.includes(item.type) &&
+        typeStrengths[item.type].some((s) =>
+          remainingWeaknessesAfterPrimary.has(s)
+        )
+      );
+    });
+
+    // Avoid duplicating types in primary and complementary
+    const complementaryTypeNames = complementaryTypes
+      .filter((item) => !primaryTypeNames.includes(item.type))
+      .map((item) => item.type);
 
     headings.forEach((headingText, index) => {
       const heading = document.createElement("h3");
@@ -408,13 +414,15 @@ document.addEventListener("DOMContentLoaded", () => {
             const list = document.createElement("ul");
             data[index].forEach((item) => {
               const listItem = document.createElement("li");
-              listItem.textContent = `${item.combo} (${item.coverage})`;
+              listItem.textContent = `${item.type} (${item.coverage})`;
 
-              // Color coding based on weaknessChange
-              if (item.weaknessChange <= 0) {
-                listItem.style.color = "green"; // Best recommendations
-              } else if (item.weaknessChange === 1) {
-                listItem.style.color = "orange"; // Good recommendations
+              // Color coding
+              if (primaryTypeNames.includes(item.type)) {
+                listItem.style.color = "green"; // Primary recommendation
+              } else if (complementaryTypeNames.includes(item.type)) {
+                listItem.style.color = "green"; // Complementary to primary
+              } else {
+                listItem.style.color = "orange"; // Secondary recommendation
               }
 
               list.appendChild(listItem);
@@ -428,7 +436,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
           // If grade is 'S', display confetti animation
           if (data[index] === "S" && typeof confetti === "function") {
-            // ... existing confetti code ...
+            const duration = 2000; // Total duration of the confetti animation in milliseconds
+            const animationEnd = Date.now() + duration;
+
+            const colors = [
+              "#FF0000", // Red
+              "#FFA500", // Orange
+              "#FFFF00", // Yellow
+              "#00FF00", // Green
+              "#00FFFF", // Cyan
+              "#0000FF", // Blue
+              "#FF00FF", // Magenta
+            ];
+
+            (function frame() {
+              confetti({
+                particleCount: 50,
+                spread: 120,
+                startVelocity: 30,
+                decay: 0.9,
+                colors: colors,
+                origin: {
+                  x: Math.random(), // Random horizontal position
+                  y: 0.5 + Math.random() * 0.5, // Random vertical position in the lower half (0.5 to 1.0)
+                },
+              });
+
+              if (Date.now() < animationEnd) {
+                requestAnimationFrame(frame);
+              }
+            })();
           }
         } else {
           paragraph.textContent = Array.isArray(data[index])
